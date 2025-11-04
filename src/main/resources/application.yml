@@ -1,33 +1,51 @@
 # ===============================
-# = PARAMETERS  H2
+# = PARAMETERS H2
 # ===============================
 
 # https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#application-properties.core
 
 # ===============================
-# = DATA SOURCE
+# = DATA SOURCE - H2 IN MEMORY
 # ===============================
-# UNIX or MAC
 spring:
   profiles:
-    active : h2
+    active: h2
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
+    username: sa
+    password: sa
+  jpa:
+    database: h2
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always  # IMPORTANTE: Ejecuta schema.sql y data.sql
+  h2:
+    console:
+      enabled: true
+      path: /h2
+  data:
+    rest:
+      basePath: /api
 
-logging :
+logging:
   # DEBUG, INFO , ERROR
-  level :
-    root : INFO
+  level:
+    root: INFO
 
   # Output to a temp_folder/file
-  file :
-    name : ${user.home}/logs/application.log
+  file:
+    name: ${user.home}/logs/application.log
 
-  pattern :
+  pattern:
   # Logging pattern for the console : IT IS OK
   # console : %d{yy-MM-dd HH:mm:ss} - %logger{36} - %msg%n
-
+  
   # Logging pattern for file : DONT WORK, DISABLE WRITE FILE LOG
   # file : %d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%
 
-server :
-  port : 8080
-
+server:
+  port: 8080

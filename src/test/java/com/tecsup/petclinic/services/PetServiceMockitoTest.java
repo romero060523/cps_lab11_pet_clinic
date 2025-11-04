@@ -169,7 +169,6 @@ public class PetServiceMockitoTest {
         Pet newPetCreate = TObjectCreator.newPetCreatedForUpdate();
 
         PetDTO newPetDTO = petMapper.mapToDto(newPet);
-        PetDTO hopePetDTOCreate = petMapper.mapToDto(newPetCreate);
 
 
         // ------------ Create ---------------
