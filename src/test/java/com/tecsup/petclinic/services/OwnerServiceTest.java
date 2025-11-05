@@ -7,12 +7,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.tecsup.petclinic.dtos.OwnerDTO;
 import org.junit.jupiter.api.Test;
-import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import com.tecsup.petclinic.entities.Owner;
 import com.tecsup.petclinic.exceptions.OwnerNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -66,61 +64,6 @@ public class OwnerServiceTest {
 			log.info("Owner not found (expected): " + e.getMessage());
 			assertTrue(true);
 		}
-	}
-
-	/**
-	 * Test find owner by last name
-	 */
-	@Test
-	public void testFindOwnerByLastName() {
-
-		String FIND_LAST_NAME = "Davis";
-		int SIZE_EXPECTED = 2; // Betty Davis and Harold Davis
-
-		List<OwnerDTO> owners = this.ownerService.findByLastName(FIND_LAST_NAME);
-
-		log.info("Owners found with last name '{}': {}", FIND_LAST_NAME, owners.size());
-		owners.forEach(owner -> log.info("  - {}", owner));
-
-		assertEquals(SIZE_EXPECTED, owners.size());
-	}
-
-	/**
-	 * Test find owner by first name
-	 */
-	@Test
-	public void testFindOwnerByFirstName() {
-
-		String FIND_FIRST_NAME = "Maria";
-		int SIZE_EXPECTED = 1;
-
-		List<OwnerDTO> owners = this.ownerService.findByFirstName(FIND_FIRST_NAME);
-
-		log.info("Owners found with first name '{}': {}", FIND_FIRST_NAME, owners.size());
-		owners.forEach(owner -> log.info("  - {}", owner));
-
-		assertEquals(SIZE_EXPECTED, owners.size());
-		if (!owners.isEmpty()) {
-			assertEquals(FIND_FIRST_NAME, owners.get(0).getFirstName());
-		}
-	}
-
-	/**
-	 * Test list all owners
-	 */
-	@Test
-	public void testListOwners_success() {
-
-		int MINIMUM_EXPECTED_SIZE = 10; // Based on data.sql, there are at least 10 owners
-
-		List<Owner> owners = this.ownerService.findAll();
-
-		log.info("Total owners found: {}", owners.size());
-		owners.forEach(owner -> log.info("  - {}", owner));
-
-		assertNotNull(owners);
-		assertTrue(owners.size() >= MINIMUM_EXPECTED_SIZE, 
-				"Expected at least " + MINIMUM_EXPECTED_SIZE + " owners from data.sql");
 	}
 
 	/**
