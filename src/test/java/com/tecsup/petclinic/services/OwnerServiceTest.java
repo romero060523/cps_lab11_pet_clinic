@@ -1,5 +1,8 @@
 package com.tecsup.petclinic.services;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,28 +18,26 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Test class for OwnerService
- *
- * Implemented: create and update tests
- * Pending (empty): findById and delete
+ * 
+ * Implemented: CREATE/UPDATE using JDBC
+ * Pending (empty): FIND/DELETE (waiting for OwnerService implementation)
  */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
+@Slf4j
 public class OwnerServiceTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    // @Autowired
+    // private OwnerService ownerService;  // TODO: Uncomment when OwnerService is implemented
+
     private SimpleJdbcInsert ownerInsert;
 
-    /**
-     * Initialize test data (fixtures)
-     * Este método se ejecuta antes de cada test
-     */
     @BeforeEach
     public void setUp() {
         this.ownerInsert = new SimpleJdbcInsert(jdbcTemplate)
@@ -44,9 +45,10 @@ public class OwnerServiceTest {
                 .usingGeneratedKeyColumns("id");
     }
 
-    // region CREATE TESTS
+    // ========== CREATE TESTS (JDBC-based) ==========
+    
     /**
-     * Prueba para crear un dueño
+     * Prueba para crear un dueño usando JDBC
      * Verifica que se pueda crear un nuevo dueño correctamente
      */
     @Test
@@ -70,11 +72,11 @@ public class OwnerServiceTest {
         assertEquals(city, row.city);
         assertEquals(phone, row.telephone);
     }
-    // endregion
 
-    // region UPDATE TESTS
+    // ========== UPDATE TESTS (JDBC-based) ==========
+    
     /**
-     * Prueba para actualizar un dueño
+     * Prueba para actualizar un dueño usando JDBC
      * Verifica que se pueda actualizar la información de un dueño existente
      */
     @Test
@@ -103,36 +105,98 @@ public class OwnerServiceTest {
         assertEquals(upCity, row.city);
         assertEquals(upPhone, row.telephone);
     }
-    // endregion
 
-	
-
-    // region FIND TESTS (empty)
+    // ========== FIND TESTS (JDBC-based) ==========
+    
     /**
      * Prueba para buscar un dueño por ID
-     * Verifica que se pueda encontrar un dueño por su identificador
+     * Verifica que se pueda encontrar un dueño por su identificador usando JDBC
      */
     @Test
     public void testFindOwnerById() {
-        // TODO: Implementar prueba para buscar dueño por ID
-    }
-    // endregion
+        // Arrange: usar un owner existente de data.sql (ID=1 es George Franklin)
+        Integer ID = 1;
+        String FIRST_NAME_EXPECTED = "George";
+        String LAST_NAME_EXPECTED = "Franklin";
 
-    // region DELETE TESTS (empty)
+        // Act
+        OwnerRow owner = findOwnerByIdInternal(ID);
+
+        // Assert
+        assertNotNull(owner, "Owner no debe ser nulo");
+        assertEquals(ID, owner.id);
+        assertEquals(FIRST_NAME_EXPECTED, owner.firstName);
+        assertEquals(LAST_NAME_EXPECTED, owner.lastName);
+        log.info("Owner found: {}", owner);
+    }
+
+    /**
+     * Prueba para buscar un dueño por ID - caso no encontrado
+     * Verifica que retorne null o lance excepción cuando el ID no existe
+     */
+    @Test
+    public void testFindOwnerById_notFound() {
+        // Arrange
+        Integer NON_EXISTENT_ID = 99999;
+
+        // Act & Assert
+        try {
+            OwnerRow owner = findOwnerByIdInternal(NON_EXISTENT_ID);
+            fail("Se esperaba una excepción al buscar un owner inexistente, pero se encontró: " + owner);
+        } catch (Exception e) {
+            // Esperado: EmptyResultDataAccessException o similar
+            log.info("Owner no encontrado (esperado): {}", e.getMessage());
+            assertTrue(true);
+        }
+    }
+
+    // ========== DELETE TESTS (JDBC-based) ==========
+    
     /**
      * Prueba para eliminar un dueño
-     * Verifica que se pueda eliminar un dueño correctamente
+     * Verifica que se pueda eliminar un dueño correctamente usando JDBC
      */
     @Test
     public void testDeleteOwner() {
-        // TODO: Implementar prueba para eliminar dueño
+        // Arrange: crear un owner primero
+        String firstName = "TestOwner";
+        String lastName = "TestDelete";
+        String address = "123 Test St.";
+        String city = "Test City";
+        String telephone = "5555555555";
+
+        Integer ownerId = insertOwner(firstName, lastName, address, city, telephone);
+        assertNotNull(ownerId);
+        assertTrue(existsOwnerById(ownerId), "Owner debe existir antes de eliminar");
+
+        // Act: eliminar
+        int deleted = jdbcTemplate.update("DELETE FROM owners WHERE id = ?", ownerId);
+
+        // Assert
+        assertEquals(1, deleted, "Debe eliminar exactamente 1 registro");
+        assertFalse(existsOwnerById(ownerId), "Owner no debe existir después de eliminarse");
+        log.info("Owner with ID {} deleted successfully", ownerId);
     }
-    // endregion
 
+    /**
+     * Prueba para eliminar un dueño - caso ID no existe
+     * Verifica que no se elimine nada cuando el ID no existe
+     */
+    @Test
+    public void testDeleteOwner_notFound() {
+        // Arrange
+        Integer NON_EXISTENT_ID = 99999;
 
+        // Act
+        int deleted = jdbcTemplate.update("DELETE FROM owners WHERE id = ?", NON_EXISTENT_ID);
 
+        // Assert
+        assertEquals(0, deleted, "No debe eliminar ningún registro cuando el ID no existe");
+        log.info("Delete attempt on non-existent owner (expected 0 rows affected)");
+    }
 
-    // === HELPERS (internos) ===
+    // ========== HELPERS (JDBC internals) ==========
+    
     private Integer insertOwner(String firstName, String lastName, String address, String city, String phone) {
         Map<String, Object> params = new HashMap<>();
         params.put("first_name", firstName);
@@ -150,6 +214,15 @@ public class OwnerServiceTest {
                 ownerRowMapper,
                 id
         );
+    }
+
+    private boolean existsOwnerById(Integer id) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM owners WHERE id = ?",
+                Integer.class,
+                id
+        );
+        return count != null && count > 0;
     }
 
     private final RowMapper<OwnerRow> ownerRowMapper = new RowMapper<>() {
